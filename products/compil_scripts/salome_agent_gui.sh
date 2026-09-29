@@ -6,6 +6,7 @@ echo "##########################################################################
 
 mkdir -p "${PRODUCT_INSTALL}"
 ${PYTHONBIN} -m venv ${PRODUCT_INSTALL}
+unset PYTHONPATH
 source ${PRODUCT_INSTALL}/bin/activate
 cd ${SOURCE_DIR}
 
