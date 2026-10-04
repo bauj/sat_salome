@@ -9,6 +9,8 @@ ${PYTHONBIN} -m venv ${PRODUCT_INSTALL}
 source ${PRODUCT_INSTALL}/bin/activate
 cd ${SOURCE_DIR}
 
+# A leftover setuptools build/ dir would ship files deleted from the sources.
+rm -rf build salome-agent/build
 ${PRODUCT_INSTALL}/bin/pip3 install ./salome-agent .
 if [ $? -ne 0 ]; then
     echo "FATAL: could not install salome-agent-gui"
