@@ -158,7 +158,7 @@ APPLICATION :
         rkCommon : '1.7.0'
         rich : '13.7.1'
         root: '6.28.10'
-        salome_agent_gui : 'master'
+        salome_agent_gui : 'main'
         scipy : 'native'
         scikit_learn : 'native' # 1.2.2/1.0
         scotch : {tag: '6.1.2', section: 'version_6_1_2_MPI', hpc: 'yes', base: 'no'}

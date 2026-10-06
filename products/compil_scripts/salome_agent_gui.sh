@@ -8,11 +8,18 @@ mkdir -p "${PRODUCT_INSTALL}"
 ${PYTHONBIN} -m venv ${PRODUCT_INSTALL}
 unset PYTHONPATH
 source ${PRODUCT_INSTALL}/bin/activate
-cd ${SOURCE_DIR}
-
-# A leftover setuptools build/ dir would ship files deleted from the sources.
-rm -rf build salome-agent/build
-${PRODUCT_INSTALL}/bin/pip3 install ./salome-agent .
+# Build from a copy in BUILD_DIR: pip builds in-tree, and its build/ and
+# *.egg-info must not land in (or be reused from) SOURCE_DIR.
+rm -rf ${BUILD_DIR}
+mkdir -p ${BUILD_DIR}/cache/pip
+tar -C ${SOURCE_DIR} --exclude=.git --exclude=./build --exclude=./salome-agent/build \
+    --exclude='*.egg-info' -cf - . | tar -C ${BUILD_DIR} -xf -
+if [ $? -ne 0 ]; then
+    echo "FATAL: could not copy the sources to ${BUILD_DIR}"
+    exit 1
+fi
+cd ${BUILD_DIR}
+${PRODUCT_INSTALL}/bin/pip3 install --cache-dir=${BUILD_DIR}/cache/pip ./salome-agent .
 if [ $? -ne 0 ]; then
     echo "FATAL: could not install salome-agent-gui"
     exit 1
