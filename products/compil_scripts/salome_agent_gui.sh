@@ -10,8 +10,11 @@ unset PYTHONPATH
 source ${PRODUCT_INSTALL}/bin/activate
 # Build from a copy in BUILD_DIR: pip builds in-tree, and its build/ and
 # *.egg-info must not land in (or be reused from) SOURCE_DIR.
+# The pip cache lives next to BUILD_DIR, not in it: BUILD_DIR is wiped below,
+# and an empty cache makes every build re-download (and re-resolve) everything.
+PIP_CACHE=${BUILD_DIR}_pipcache
 rm -rf ${BUILD_DIR}
-mkdir -p ${BUILD_DIR}/cache/pip
+mkdir -p ${BUILD_DIR} ${PIP_CACHE}
 tar -C ${SOURCE_DIR} --exclude=.git --exclude=./build --exclude=./salome-agent/build \
     --exclude='*.egg-info' -cf - . | tar -C ${BUILD_DIR} -xf -
 if [ $? -ne 0 ]; then
@@ -19,10 +22,25 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 cd ${BUILD_DIR}
-${PRODUCT_INSTALL}/bin/pip3 install --cache-dir=${BUILD_DIR}/cache/pip ./salome-agent .
+# constraints.txt pins every dependency to the versions the tests ran with, so
+# a clean install gets the same set each time instead of whatever PyPI resolves.
+CONSTRAINTS=""
+if [ -f constraints.txt ]; then
+    CONSTRAINTS="-c constraints.txt"
+else
+    echo "WARNING: no constraints.txt in this salome-agent-gui checkout, dependencies are not pinned"
+fi
+${PRODUCT_INSTALL}/bin/pip3 install --cache-dir=${PIP_CACHE} ${CONSTRAINTS} ./salome-agent .
 if [ $? -ne 0 ]; then
     echo "FATAL: could not install salome-agent-gui"
     exit 1
+fi
+# pip succeeding is not enough: a resolve can pick versions that do not run.
+# Building the agent graph imports what a GUI turn needs.
+${PRODUCT_INSTALL}/bin/python3 -c "import salome_agent_gui.app; from salome_agent.graph import build_graph; build_graph(batch=True)"
+if [ $? -ne 0 ]; then
+    echo "FATAL: the installed salome-agent-gui does not import"
+    exit 6
 fi
 
 cp ${SOURCE_DIR}/salome-agent-gui.sh ${PRODUCT_INSTALL}/bin/salome-agent-gui.sh
