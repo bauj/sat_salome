@@ -205,7 +205,7 @@ APPLICATION :
         'HYBRIDPLUGIN'
         'HexoticPLUGIN'
         'GMSHPLUGIN'
-        'VOXELPLUGIN' : 'main'
+        'CARTESIANGRIDPLUGIN' : 'main'
         'HEXABLOCK'
         'HEXABLOCKPLUGIN'
         'meshbooleanplugin'

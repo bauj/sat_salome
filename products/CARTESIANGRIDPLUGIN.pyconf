@@ -1,19 +1,19 @@
 default :
 {
-    name : "VOXELPLUGIN"
+    name : "CARTESIANGRIDPLUGIN"
     build_source : "cmake"
     get_source : "git"
     git_info:
     {
       repositories :
       {
-        github : "git@github.com:bauj/VOXELPLUGIN.git"
+        github : "git@github.com:bauj/CARTESIANGRIDPLUGIN.git"
       }
     }
     environ :
     {
-        _SMESH_MeshersList : "VoxelPlugin"
-        SalomeAppConfig_ : $install_dir + $VARS.sep + "share" + $VARS.sep + "salome" + $VARS.sep + "resources" + $VARS.sep + "voxelplugin"
+        _SMESH_MeshersList : "CartesianGridPlugin"
+        SalomeAppConfig_ : $install_dir + $VARS.sep + "share" + $VARS.sep + "salome" + $VARS.sep + "resources" + $VARS.sep + "cartesiangridplugin"
     }
     depend : [
               "KERNEL",
