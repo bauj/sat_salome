@@ -204,6 +204,7 @@ APPLICATION :
         'HYBRIDPLUGIN'
         'HexoticPLUGIN'
         'GMSHPLUGIN'
+        'CARTESIANGRIDPLUGIN' : 'master'
         'HEXABLOCK'
         'HEXABLOCKPLUGIN'
         'meshbooleanplugin'

@@ -1,0 +1,37 @@
+default :
+{
+    name : "CARTESIANGRIDPLUGIN"
+    build_source : "cmake"
+    get_source : "git"
+    git_info:
+    {
+      repositories :
+      {
+        github : "https://github.com/bauj/CARTESIANGRIDPLUGIN.git"
+      }
+    }
+    environ :
+    {
+        _SMESH_MeshersList : "CartesianGridPlugin"
+        SalomeAppConfig_ : $install_dir + $VARS.sep + "share" + $VARS.sep + "salome" + $VARS.sep + "resources" + $VARS.sep + "cartesiangridplugin"
+    }
+    depend : [
+              "KERNEL",
+              "GUI",
+              "GEOM",
+              "SMESH",
+              "boost",
+              "Python"
+              ]
+    build_depend : ["cmake", "swig", "doxygen"]
+    cmake_options : "-DSALOME_BUILD_DOC=OFF"
+    source_dir : $APPLICATION.workdir + $VARS.sep + 'SOURCES' + $VARS.sep + $name
+    build_dir : $APPLICATION.workdir + $VARS.sep + 'BUILD' + $VARS.sep + $name
+    properties:
+    {
+        is_SALOME_module : "yes"
+        is_SALOME_product: "yes"
+        incremental : "yes"
+    }
+    patches: []
+}
