@@ -3,6 +3,15 @@
 echo "##########################################################################"
 echo "SALOME_AGENT_GUI" $VERSION
 echo "##########################################################################"
+# One SALOME plugin, submenu Tools > Plugins > AI tools (SALOME agent,
+# Documentation (RAG), MCP server), whose window offers three
+# assistants: Classical RAG and Agentic RAG over the SALOME documentation
+# (raglib, formerly the separate sarag / salome-assistant product) and the
+# Agentic assistant that builds models. One config file holds all three:
+# ~/.config/salome/salome-agent.json, seeded from salome_agent_gui/config.example.json.
+# SALOME_AGENT_GUI_RAG=0 leaves out the documentation modes (torch, chromadb...,
+# about 2 GB).
+RAG=${SALOME_AGENT_GUI_RAG:-1}
 
 mkdir -p "${PRODUCT_INSTALL}"
 ${PYTHONBIN} -m venv ${PRODUCT_INSTALL}
@@ -15,7 +24,7 @@ source ${PRODUCT_INSTALL}/bin/activate
 PIP_CACHE=${BUILD_DIR}_pipcache
 rm -rf ${BUILD_DIR}
 mkdir -p ${BUILD_DIR} ${PIP_CACHE}
-tar -C ${SOURCE_DIR} --exclude=.git --exclude=./build --exclude=./salome-agent/build \
+tar -C ${SOURCE_DIR} --exclude=.git --exclude=./.venv --exclude=./build --exclude=./salome-agent/build \
     --exclude='*.egg-info' -cf - . | tar -C ${BUILD_DIR} -xf -
 if [ $? -ne 0 ]; then
     echo "FATAL: could not copy the sources to ${BUILD_DIR}"
@@ -30,17 +39,37 @@ if [ -f constraints.txt ]; then
 else
     echo "WARNING: no constraints.txt in this salome-agent-gui checkout, dependencies are not pinned"
 fi
-${PRODUCT_INSTALL}/bin/pip3 install --cache-dir=${PIP_CACHE} ${CONSTRAINTS} ./salome-agent .
+if [ "${RAG}" = 0 ]; then
+    ${PRODUCT_INSTALL}/bin/pip3 install --cache-dir=${PIP_CACHE} ${CONSTRAINTS} ./salome-agent .
+else
+    # CPU-only torch first: from PyPI, pip would pull several GB of CUDA wheels.
+    ${PRODUCT_INSTALL}/bin/pip3 install --cache-dir=${PIP_CACHE} torch \
+        --index-url https://download.pytorch.org/whl/cpu
+    if [ $? -ne 0 ]; then
+        echo "FATAL: could not install CPU torch for the documentation modes"
+        exit 1
+    fi
+    ${PRODUCT_INSTALL}/bin/pip3 install --cache-dir=${PIP_CACHE} ${CONSTRAINTS} ./salome-agent '.[rag]'
+fi
 if [ $? -ne 0 ]; then
     echo "FATAL: could not install salome-agent-gui"
     exit 1
 fi
 # pip succeeding is not enough: a resolve can pick versions that do not run.
 # Building the agent graph imports what a GUI turn needs.
-${PRODUCT_INSTALL}/bin/python3 -c "import salome_agent_gui.app; from salome_agent.graph import build_graph; build_graph(batch=True)"
+# -I: python -c would otherwise import the copy in BUILD_DIR (the cwd).
+# ...and salome-agent-mcp (SALOME as tools for Claude Desktop / Claude Code).
+${PRODUCT_INSTALL}/bin/python3 -I -c "import salome_agent_gui.app, salome_agent_gui.mcp_server, mcp.server.mcpserver; from salome_agent.graph import build_graph; build_graph(batch=True)"
 if [ $? -ne 0 ]; then
     echo "FATAL: the installed salome-agent-gui does not import"
     exit 6
+fi
+if [ "${RAG}" != 0 ]; then
+    ${PRODUCT_INSTALL}/bin/python3 -I -c "from salome_agent_gui import rag_backend; rag_backend.ensure_path(); import core"
+    if [ $? -ne 0 ]; then
+        echo "FATAL: the documentation modes (raglib) do not import"
+        exit 7
+    fi
 fi
 
 cp ${SOURCE_DIR}/salome-agent-gui.sh ${PRODUCT_INSTALL}/bin/salome-agent-gui.sh
@@ -50,11 +79,13 @@ if [ $? -ne 0 ]; then
 fi
 chmod 755 ${PRODUCT_INSTALL}/bin/salome-agent-gui.sh
 
-# Seed config for ~/.config/salome/salome-agent.json on first launch.
-cp ${SOURCE_DIR}/salome-agent/config.example.json \
-   ${PRODUCT_INSTALL}/lib/python${PYTHON_VERSION}/site-packages/salome_agent_gui/config.example.json
+# Seed config for ~/.config/salome/salome-agent.json on first launch: the GUI's
+# own example (pip installs it as package data), the engine's settings plus
+# gui.mode and the rag section. Do not replace it with salome-agent's
+# config.example.json, which has no rag section.
+${PRODUCT_INSTALL}/bin/python3 -I -c "from salome_agent_gui import rag_backend; rag_backend.default_rag()"
 if [ $? -ne 0 ]; then
-    echo "FATAL: could not copy config.example.json"
+    echo "FATAL: the installed config.example.json has no rag section"
     exit 3
 fi
 
