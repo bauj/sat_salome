@@ -24,7 +24,6 @@ default :
               "Python"
               ]
     build_depend : ["cmake", "swig", "doxygen"]
-    cmake_options : "-DSALOME_BUILD_DOC=OFF"
     source_dir : $APPLICATION.workdir + $VARS.sep + 'SOURCES' + $VARS.sep + $name
     build_dir : $APPLICATION.workdir + $VARS.sep + 'BUILD' + $VARS.sep + $name
     properties:
